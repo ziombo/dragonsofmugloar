@@ -1,0 +1,271 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+
+	<link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+
+	<style>
+		body{
+			font-family: "Ubuntu", sans-serif;
+		}
+		#wrapper-left{
+			width: 50%;
+			display: inline-block;
+			position: fixed;
+		}
+		#wrapper-right{
+			width: 50%;
+			display: inline-block;
+			float: right;
+			text-align:center;
+		}
+		#get{
+			width: 300px;
+			height: 50px;
+			display: block;
+			font-size: 30px;
+			font-weight: 600;
+		}
+		#rounds{
+			width: 296px;
+			height: 50px;
+			font-size:20px;
+		}
+		#knight, #dragon {
+			display: inline-block;
+			vertical-align: top;
+			width: 100%;
+			text-align: left;
+		}
+		#weather{
+			margin-bottom: 30px;
+		}
+		#history{
+			display: inline-block;
+			text-align: left;
+			width: 70%;
+		}
+		#winrate{
+			margin-bottom: 0;
+		}
+		#wthr{
+			display:inline-block;
+			border-top: 1px solid black;
+			margin-top: 0;
+		}
+		#gameid{
+			margin-bottom: 0;
+		}
+		label{
+			font-size: 25px;
+			display:block;
+		}
+		span{
+			display:block;
+		}
+		ol{
+			overflow: auto;
+			height: 550px;
+		}
+		pre{
+			font-family: "Ubuntu", sans-serif;
+		}
+		@media screen and (max-width: 1080px), screen and (max-height: 650px){
+			#wrapper-left{
+				position: initial;
+				width: 100%;
+				text-align: center;
+			}
+			#wrapper-right{
+				width: 100%;
+				float:none;
+			}
+			#get{
+				margin: 0 auto;
+			}
+			#history{
+				width: 100%;
+				text-align: center;
+			}
+			ol{
+				height: 300px;
+				display: inline-block;
+				text-align: left;
+			}
+		}
+	</style>
+</head>
+<body>
+
+	<div id="wrapper-left">
+		<label for="rounds">How many battles</label>
+		<input id="rounds" name="rounds" placeholder="How many rounds" value="1"/>
+		<button id="get">GET</button>
+		<h1 id="status"> </h1>
+		<h3 id="gameid"></h3>
+		<pre id="knight"></pre>
+		<pre id="dragon"></pre>
+		<div id="weather">
+			<h4 id="code"></h4>
+			<p id="msg"></p>
+		</div>
+	</div>
+	<div id="wrapper-right">
+		<div id="history">
+			<h3 id="winrate">Winrate: N/A</h3>
+			<h3 id="wthr">Weather: N/A</h3>
+			<div id="history-list">
+				<ol></ol>
+			</div>
+
+		</div>
+	</div>
+
+
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+	<script>
+		(function () {
+			var fightPut = "";
+			var knightGet = "http://www.dragonsofmugloar.com/api/game";
+			var weatherGet = "http://www.dragonsofmugloar.com/weather/api/report/";
+			var knightStats = {};
+			var won = 0, lost = 0, hva = 0, te = 0, sro = 0, fog = 0;
+
+			var weather = {
+				"HVA": "Heavy Rain With Floods",
+				"SRO": "Storm",
+				"T E": "The Long Dry",
+				"FUNDEFINEDG": "Fog",
+				"NMR": "Everyday Regular Normal Weather"
+			}
+
+			$("#get").click(function () {
+				var roundsCounter = $("#rounds").val();
+				if (roundsCounter > 0) {
+					this.disabled = true;
+					$.getJSON(knightGet, function (data) {
+						knightStats = data.knight;
+						$("#gameid").text("GameId: " + data.gameId);
+						$("#knight").html('"knight":' + JSON.stringify(knightStats, null, "\t"));
+						fightPut = "http://www.dragonsofmugloar.com/api/game/" + data.gameId + "/solution";
+						$("form").action = fightPut;
+					})
+					.done(function (data) {
+						$.ajax({
+							url: weatherGet + data.gameId,
+							type: "GET",
+							dataType: "html",
+							success: function (data) {
+
+								var xmlDoc = $.parseXML(data);
+								var code = $(xmlDoc).find('code').text();
+								var msg = $(xmlDoc).find('message').text();
+								//$("#weather").html(weather[code] + msg);
+								$("#code").text(weather[code]);
+								$("#msg").text(msg);
+
+								//initially give dragon knights skills to add/substract them
+								var dragon = { "scaleThickness": knightStats.attack, "clawSharpness": knightStats.armor, "wingStrength": knightStats.agility, "fireBreath": knightStats.endurance };
+								var stats = { dragon };
+
+								switch (code) {
+									case "HVA":
+										dragon.scaleThickness = 5;
+										dragon.clawSharpness = 10;
+										dragon.wingStrength = 5;
+										dragon.fireBreath = 0;
+										hva++;
+										break;
+									case "T E":
+										dragon.scaleThickness = 5;
+										dragon.clawSharpness = 5;
+										dragon.wingStrength = 5;
+										dragon.fireBreath = 5;
+										te++;
+										break;
+									case "SRO":
+										stats = {};
+										sro++;
+										break;
+									case "FUNDEFINEDG":
+										//knight is useless in the fog, just take his skills.
+										fog++;
+										break;
+									default:
+										var knightStatsArr = [knightStats.attack, knightStats.armor, knightStats.agility, knightStats.endurance];
+										var knightMax = knightStatsArr.indexOf(maxVal(knightStatsArr));
+										var knightMin = knightStatsArr.indexOf(minVal(knightStatsArr))
+
+
+										//dragon stats in the array are easier for me to use
+										var dragonArr = [];
+										for (var stat in dragon) {
+											dragonArr.push(stat);
+										}
+
+										//find knight's highest value and make drake's equivalent stat properly adjusted
+										dragon[dragonArr[knightMax]] = maxVal(knightStatsArr) + 2;
+
+										//if knight's stats are 5,5,5,5 it breaks the algorithm because his max and min stats have the same index
+										if (dragonArr[knightMax] == dragonArr[knightMin]) {
+											dragon[dragonArr[1]]--;
+											dragon[dragonArr[2]]--;
+										} else {
+											//substract 1 point from 2 middle(neither highest nor lowest) stats
+											for (var stat in dragonArr) {
+												if (dragonArr[stat] != dragonArr[knightMax] && dragonArr[stat] != dragonArr[knightMin]) {
+													dragon[dragonArr[stat]]--;
+												}
+											}
+										}
+								}
+								$("#dragon").html('"dragon":' + JSON.stringify(dragon, null, '\t'));
+								$.ajax({
+									url: fightPut,
+									type: "PUT",
+									data: JSON.stringify(stats, null, '\t'),
+									contentType: "application/json",
+									success: function (response) {
+										$("#status").html(response.status + ": " + response.message);
+
+										var resultList = $("ol");
+										if (response.status == "Defeat") {
+											//won't happen
+											resultList.append("<li style='color: red'>" + response.status + " to " + knightStats.name + "</li>");
+										} else {
+											resultList.append("<li>" + response.status + " over " + knightStats.name + "</li>");
+										}
+										resultList[0].scrollTop = resultList[0].scrollHeight;
+										if (response.status == "Victory") {
+											won++;
+										} else {
+											lost++;
+										}
+										$("#winrate").html("Winrate: " + Math.round(won * 100 / (won + lost)).toFixed(2) + "% | Won: " + won + " Lost: " + lost);
+										$("#wthr").html("HeavyRain: " + hva + " Storm: " + sro + " The Long Dry: " + te + " Fog: " + fog);
+									}
+								})
+								.done(function () {
+									$("#rounds").val(--roundsCounter);
+									$("#get").click();
+								});
+							}
+						});
+					});
+				} else {
+					this.disabled = false;
+				}
+			});
+		}());
+
+		function maxVal(array) {
+			return Math.max.apply(Math, array);
+		};
+		function minVal(array) {
+			return Math.min.apply(Math, array);
+		};
+	</script>
+</body>
+</html>
