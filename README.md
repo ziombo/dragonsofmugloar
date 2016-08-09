@@ -1,2 +1,3 @@
 # dragonsofmugloar
-solution to dragonsofmugloar.com in the form of website
+Solution to dragonsofmugloar.com created as a single html file for the ease of distribution.
+Currently hosted here: [DragonsOfMugloar](http://dragonsofmugloar.herokuapp.com/index.html)
